@@ -6,9 +6,6 @@ Arquivo principal para o trabalho de fisica do clima.
 import os
 import time
 
-# IMPORT CUSTOM MODULES
-from Scripts import 
-
 
 if __name__ == "__main__":
 	folder = os.path.normpath(os.getcwd())
