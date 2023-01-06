@@ -29,7 +29,6 @@ def cyclone_duration(tracking : pd.DataFrame):
 	passo = pd.Series(0, index = tracking.index)
 	
 	# timedelta
-	timedelta = pd.Timedelta(1, 'hour')
 	dt = pd.Timedelta(6, 'hour') # duracao de um passo de tempo
 
 	# loop para cada id / ciclone
@@ -42,8 +41,8 @@ def cyclone_duration(tracking : pd.DataFrame):
 		min_dt = cyclone_dt.min()
 		max_dt = cyclone_dt.max()
 
-		# estima a duracao em hora
-		duracao = (max_dt - min_dt) / timedelta
+		# estima a duracao em horas
+		duracao = (max_dt - min_dt) / pd.Timedelta(1, 'hour')
 
 		# atualiza a série
 		duration.loc[condition] = duracao
@@ -54,45 +53,51 @@ def cyclone_duration(tracking : pd.DataFrame):
 
 	return tracking
 
+
 def relative_vorticity(tracking: pd.DataFrame):
 	'''
 	Estima o criterio de vorticidade relativa para cada ciclone
 	Para isso, recebe um DataFrame com os dados em tabela, realiza um loop no id
-	de cada ciclone e retorna uma nova coluna com o resultado (True ou False).	
+	de cada ciclone e retorna uma nova coluna com o resultado (True ou False).
+
+	O criterio define que o ciclone sera filtrado se após 72h do 1º passo de tempo
+	em que foi detectado pelo tracking, o seu valor de vorticidade relativa (-)
+	for inferior a 4.
+
+	Estima-se que isso elimine 90% das classificacoes erradas, 50% dos ciclones
+	ja em estado maduro / oclusao e 25% das ciclogeneses.
+
+	Retorna True se for inferior a 4, False caso contrario.
 	'''
 
 	# id's unicos
 	tracking = tracking.copy()
 	ids = np.unique(tracking['id'])
 	
-	# timedelta de cada passo de tempo
-	dt_h = 6 
-
 	# derivadas
-	derivada_1 = pd.Series('nan', index = tracking.index)
-	derivada_2 = pd.Series('nan', index = tracking.index)
+	criterio = pd.Series(False, index = tracking.index)
+
+	# passo de tempo
+	dt_h = 6 # resolucao temporal em horas
+	dt_criterio = 72
+	step = dt_criterio // dt_h
 
 	# loop para cada id / ciclone
 	for n in ids:
 		# slice do dataframe para o tracking do ciclone em questao
 		condition = tracking['id'] == n
-		cyclone = tracking.loc[condition].copy()
+		cyclone = tracking.loc[condition]
+
+		if cyclone['duration'].iloc[0] < 72: # se a duracao do ciclone for inferior a 72h, pula.
+			continue
 
 		# organizando em ordem crescente de acordo com o tempo
-		cyclone = cyclone.sort_values(by = 'datetime', ascending = True)
-		vort = cyclone['rel_vort']
+		vort = cyclone.loc[cyclone['step'] == step, 'rel_vort'].iloc[0]
 
-		# derivada temporal
-		dvort_dt = [(vort.iloc[i + 1] - vort.iloc[i]) / dt_h for i in range(vort.shape[0] - 1)] 
-		dvort_dt2 = [(dvort_dt[i + 1] - dvort_dt[i]) / dt_h for i in range(len(dvort_dt) - 1)] 
-
-		derivada_1.loc[cyclone.index] = dvort_dt + ['nan']
-		derivada_2.loc[cyclone.index] = dvort_dt2 + ['nan'] * 2
-
-	tracking['derivada_1'] = derivada_1
-	tracking['derivada_2'] = derivada_2
+		if vort < 4:
+			criterio.loc[condition] = True
 	
-	return tracking
+	return criterio
 
 
 def post_processing(folder : str, years : list[int]) -> None:
@@ -100,7 +105,7 @@ def post_processing(folder : str, years : list[int]) -> None:
 	data_folder = os.path.join(folder, "Tracking")
 
 	# criando diretorio para guardar os dados processados, se ja nao existe.
-	save_folder = os.path.join(data_folder, "Processado")
+	save_folder = os.path.join(data_folder, "Filtrado")
 	os.makedirs(save_folder, exist_ok = True)
 
 	# Colunas do arquivo
@@ -132,18 +137,18 @@ def post_processing(folder : str, years : list[int]) -> None:
 		df['datetime'] = df['datetime'].str.slice(2, -1)
 		df['datetime'] = pd.to_datetime(df['datetime'])
 
-		# estimando a duracao de cada ciclone
+		N = np.unique(df['id']).shape[0] # quantidade original de dados
+
+		# estimando a duracao de cada ciclone e criterio de 48h
 		# ////////////////////////////////////////////////////////////////////
 		df = cyclone_duration(df)
-
-		# Quantos obedecem ao criterio?
-		# n = df.shape[0] - df['criterio_dt'].sum() 
-		# print(f"Em {year}, houveram {n} ({n / df.shape[0] * 100:.2f}%) ciclones com duração inferior a 24 horas")
+		df = df.loc[df['duration'] >= 48]
 
 		# estimando o criterio de vorticidade relativa
 		# ////////////////////////////////////////////////////////////////////
-		df = relative_vorticity(df)
+		df = df.loc[~relative_vorticity(df)] # True se rel_vort for inferior a 4 em 72h
 
+		print(f"Após os filtros, restaram {np.unique(df['id']).shape[0]} / {N} ciclones em {year}")
 		# Salvando
 		save_file = os.path.join(save_folder, f"{year}.csv")
 		df.to_csv(save_file, index= False, header = True)
