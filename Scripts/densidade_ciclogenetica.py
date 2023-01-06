@@ -14,14 +14,6 @@ import os
 import pandas as pd
 import numpy as np
 import xarray as xr
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-
-# IMPORT MAP RELATED MODULES
-import cartopy.crs as ccrs
-import cartopy.feature as cf
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-
 
 def matriz_densidade(
 	binx, biny, # Pontos da grade nos eixos
@@ -67,9 +59,9 @@ def gerar_netcdf(data_folder, years, resolucao : int = 5):
 
 	# extensao do dominio
 	lon_min = -90
-	lon_max = -20
+	lon_max = 0
 	lat_min = -70
-	lat_max = -10
+	lat_max = 20
 
 	# diumesnoes do netcdf final
 	binx = np.arange(lon_min, lon_max + dx, dx) # coordenadas lon
@@ -85,6 +77,14 @@ def gerar_netcdf(data_folder, years, resolucao : int = 5):
 	
 	# Valores da variavel
 	results = np.zeros((X.shape[0], X.shape[1], times.shape[0])) # começa zerado
+
+	# Divisao pela area corrspondente a cada pixel. 
+	# Calculo de um elemento de area dA no globo da Terra
+	# Terra foi considerada uma esfera perfeita (nao é :p)
+	r = 6371 # raio da terra em kilometros
+	dlon = dx * np.pi / 180 # intervalo de longitude
+	lats = Y - dx / 2 # latitudes
+	dA = np.abs(r ** 2 * dlon * ( np.sin( np.deg2rad( lats + dx ) ) - np.sin( np.deg2rad( lats ) ) ) ) # em km²
 
 	# config
 	meses = np.linspace(1, 12, 12).astype(int) # array de meses
@@ -115,8 +115,7 @@ def gerar_netcdf(data_folder, years, resolucao : int = 5):
 				biny,
 				subset['longitude'].to_numpy(),
 				subset['latitude'].to_numpy()
-				)
-
+				) / dA # Dividindo pelos infinitesimos de area
 
 	# Gerando o arquivo netcdf
 	da = xr.DataArray(results, coords = coords, dims = dims)
@@ -125,56 +124,94 @@ def gerar_netcdf(data_folder, years, resolucao : int = 5):
 	ds.to_netcdf(os.path.join(save_folder, filename))
 
 
-def visualizar_mapas(data_folder, save_folder):
-	# abre o arquivo e prepara os dados
-	filename = 'frequencia_ciclogenetica.nc'
-	ds = xr.open_dataset(os.path.join(data_folder, filename))
-	da = ds['ciclogenese']
+def regioes_ciclogeneticas(data_folder, years):
+	'''
+	Gera um arquivo csv com a série temporal da quantidade de ciclogeneses
+	por regiao ciclogenetica, conforme definido por Reboita et a., (20xx).
 
-	# vamo plotar geral.
-	total = da.sum(dim = 'time')
-	x = total.longitude.values
-	y = total.latitude.values
-	X, Y = np.meshgrid(x, y)
+	Input são os ciclones identificdos pelo tracking após o pos-processamento 
+	(aplicacao do filtro)
 
-	# configuracoes do plot
-	proj = ccrs.PlateCarree()
-	figsize = (10, 10)
-	fig, ax  = plt.subplots(
-		figsize = figsize,
-		subplot_kw= {'projection': proj}
-	)
+	Years deve ser uma lista em ordem crescente.
+	'''
 
-	# Plotando Land e Countries
-	ax.add_feature(cf.COASTLINE, color = "lightgray")
-	ax.add_feature(cf.BORDERS, color = 'lightgray')
+	# cria uma pasta "Processado" no diretorio pai, tudo bem se ja houver
+	par_dir = os.path.abspath(os.path.join(data_folder, os.pardir))
+	save_folder = os.path.join(par_dir, 'Processado')
+	os.makedirs(save_folder, exist_ok=True)
 
-	# Plot points
-	CS = ax.contour(
-		X, Y,
-		total.values
-	)
-	plt.clabel(CS, inline=1, fontsize=10)
+	# array de datas
+	times = pd.date_range(start = f"{years[0]}-1-1", end = f"{years[-1]}-12-1", freq = 'MS') 
+
+	#RG1 (Regiao Ciclogenetica no litoral do Brasil sul/sudeste)
+	RG1_lon = slice(-49., -36.)
+	RG1_lat = slice(-24., -33.)
+	RG1_values = np.zeros(times.shape)
+
+	#RG2 (Regiao ciclogenetica no litoral do uruguai)
+	RG2_lon = slice(-59., -46.)
+	RG2_lat = slice(-34., -43.)
+	RG2_values = np.zeros(times.shape)
+
+	#RG3 (Regiao ciclogenetica no litoral da argentina)
+	RG3_lon = slice(-68., -55.)
+	RG3_lat = slice(-43., -52.)
+	RG3_values = np.zeros(times.shape)
+
+	# config
+	meses = np.linspace(1, 12, 12).astype(int) # array de meses
+	ano_inicio = years[0] # menor ano
+
+	# Loop para cada ano (arquivos):
+	for year in years:
+		df = pd.read_csv(os.path.join(data_folder, f"{year}.csv"), header = 0)
+
+		# converte lon [0,360] para [-180, 180]
+		df['longitude'] = ((df['longitude'] + 180) % 360) - 180
+
+		# convetendo objetos datetime
+		df['datetime'] = pd.to_datetime(df['datetime'])
+
+		# estimando a qual regiao ciclogeneticapertence cada ponto
+		df['regiao'] = "Nenhuma"
+
+		df.loc[((df['longitude'] >= RG1_lon.start) & (df['longitude'] <= RG1_lon.stop))
+							& ((df['latitude'] >= RG1_lat.stop) & (df['latitude'] <= RG1_lat.start)), 'regiao'] = "RG1"
+
+		df.loc[((df['longitude'] >= RG2_lon.start) & (df['longitude'] <= RG2_lon.stop))
+							& ((df['latitude'] >= RG2_lat.stop) & (df['latitude'] <= RG2_lat.start)), 'regiao'] = "RG2"
+			
+		df.loc[((df['longitude'] >= RG3_lon.start) & (df['longitude'] <= RG3_lon.stop))
+							& ((df['latitude'] >= RG3_lat.stop) & (df['latitude'] <= RG3_lat.start)), 'regiao'] = "RG3"
+
+		# loop para cada mes
+		for month in meses:
+			# slice para o mes e ano
+			subset = df.loc[df['datetime'].dt.month == month]
+
+			# resgatando o primeiro passo de tempo de cada ciclone
+			subset = subset.loc[subset['step'] == 0]
+
+			# estimando a quantidade de pontos (ciclogeneses) por regiao
+			qtd = subset['regiao'].groupby(subset['regiao']).size()
+			qtd = qtd.reindex(['Nenhuma', 'RG1', 'RG2', 'RG3'], fill_value= 0)
+
+			# posicao no array
+			idx = (year - ano_inicio) * 12 + (month - 1) 
+
+			print(qtd)
+			# atribuindo as quantidades
+			RG1_values[idx] = qtd['RG1']
+			RG2_values[idx] = qtd['RG2']
+			RG3_values[idx] = qtd['RG3']
+
+	# Criando um novo DataFrame para armazenar os resultados
+	content = {'time' : times, 'l1' : RG1_values, 'l2' : RG2_values, 'l3' : RG3_values}
+	new_df = pd.DataFrame.from_dict(content)
+	new_df['ano'] = new_df.time.dt.year
+	new_df['month'] = new_df.time.dt.month
+
+	# salvando
+	filename = 'frequencia_ciclogenese_mensal.csv'
+	new_df.to_csv(os.path.join(save_folder, filename), index = False)
 	
-	plt.legend(loc = 'upper right')
-
-	# Gridlines
-	gl = ax.gridlines(crs=proj, linewidth=1, color='black', alpha=0.5, linestyle='--', draw_labels=True)
-	gl.top_labels = False
-	gl.right_labels = False
-	gl.xlines = True
-	gl.xlocator = mticker.FixedLocator(np.arange(-180, 180, 5))
-	gl.ylocator = mticker.FixedLocator(np.arange(-90, 90, 5))
-	gl.xformatter = LONGITUDE_FORMATTER
-	gl.yformatter = LATITUDE_FORMATTER
-
-	# extensao
-	ax.set_extent([-90, 0, -70, 20], proj)
-
-	# Eixos X e Y
-	ax.set_xlabel("LONGITUDE")
-	ax.set_ylabel("LATITUDE")
-
-	# mostra o plot
-	name = "Total Ciclogeneses.png"
-	fig.savefig(os.path.join(save_folder, name), bbox_inches = 'tight', dpi = 200)

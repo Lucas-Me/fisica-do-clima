@@ -14,19 +14,26 @@ from Scripts.tracking_postprocessing import post_processing
 from Scripts.grafico_derivada import grafico_interquartil
 from Scripts import figura_tracking
 from Scripts import densidade_ciclogenetica
+from Scripts.graficos_espaciais import sazonalidade_ciclogenese
 
 if __name__ == "__main__":
+	# diretorios
 	folder = os.path.normpath(os.getcwd())
 	data_folder = os.path.join(folder, 'Dados')
 	figuras_folder = os.path.join(folder, 'Figuras')
+	dados_filtrados_dir = os.path.join(data_folder, 'Tracking', 'Filtrado')
+	processados_dir = os.path.join(data_folder, 'Tracking', 'Processado')
 	
+	# configuracoes
+	anos = np.linspace(1991, 2021, 31).astype(int)
+
 	# Inicia o timer
 	start = time.time()
 
-	# OPERACOES (DEPENDE DO SCRIPT)
+	# POS PROCESSAMENTO
+	# ///////////////////////////////////////////////////////////////////////
 
 	# pos processamento da saida do tracking
-	anos = np.linspace(1991, 2021, 31).astype(int)
 	# post_processing(data_folder, anos)
 
 	# Grafico de intervalos interquartis da vorticidade relativa em cada passo de tempo
@@ -38,13 +45,21 @@ if __name__ == "__main__":
 
 	# DENSIDADE CICLOGENETICA
 	# /////////////////////////////////////////////////////////////////////
+
 	# Confecção do NetCDF com a densidade ciclogenética
-	# dados_filtrados_dir = os.path.join(data_folder, 'Tracking', 'Filtrado')
-	# densidade_ciclogenetica.gerar_netcdf(dados_filtrados_dir, anos)
+	densidade_ciclogenetica.gerar_netcdf(dados_filtrados_dir, anos, resolucao = 1)
 
 	# Visualizar plot basico do netcdf gerado
-	diretorio = os.path.join(data_folder, 'Tracking', 'Processado')
-	densidade_ciclogenetica.visualizar_mapas(diretorio, figuras_folder)
+	# densidade_ciclogenetica.visualizar_mapas(processados_dir, figuras_folder)
+
+	# serie temporal da quantidade de ciclogenese por regiao ciclogenetica
+	# densidade_ciclogenetica.regioes_ciclogeneticas(dados_filtrados_dir, anos)
+
+	# SERIES TEMPORAIS
+	# ///////////////////////////////////////////////////////////////////////
+	
+	# Sazonalidade espacial ciclogenese
+	sazonalidade_ciclogenese(processados_dir, figuras_folder)
 
 	# Termina o timer
 	end = time.time()
