@@ -35,73 +35,11 @@ rcparams = {
 }
 plt.rcParams.update(rcparams)
 
-def interquartil_vorticidade_derivada(df : pd.DataFrame, save_folder):
-
-	# Intervalos interquartis nas primeiras 48h
-	group = df.groupby(['legenda', 'step']) # agrupando por passo de tempo
-
-	# coluna legenda
-	data_legend = np.unique(df['legenda'])
-	
-	# resultados de percentil e média
-	results = group.agg(
-		P5 = ('derivada_1', lambda x: np.nanpercentile(x, 5)), # percentil 5
-		P25 = ('derivada_1', lambda x: np.nanpercentile(x, 25)), # percenntil 25
-		P50 = ('derivada_1', lambda x: np.nanpercentile(x, 50)), # mediana
-		P75 = ('derivada_1', lambda x: np.nanpercentile(x, 75)), # percentil 75
-		P95 = ('derivada_1', lambda x: np.nanpercentile(x, 95)), # percentil 95
-		MEDIA = ('derivada_1', 'mean') # media
-	)
-
-	# Configuracoes do grafico
-	fig, axes = plt.subplots(figsize = (12, 12), nrows = data_legend.shape[0], sharex = True)
-
-	# Plotando os resultados
-	for i in range(data_legend.shape[0]):
-		subset = results.loc[(data_legend[i],)]
-
-		# Mediana  e media
-		axes[i].plot(subset.index, subset['P50'], color = 'green', linewidth = 2)
-		# axes[i].plot(subset.index, subset['MEDIA'], color = 'royalblue', linewidth = 2)
-
-		# preenche entre o percentil 25 e 75
-		axes[i].fill_between(subset.index, subset['P25'], subset['P75'], color = 'orangered')
-
-		# preenche entre o percentil 5 e 25
-		axes[i].fill_between(subset.index, subset['P5'], subset['P25'], color = 'orange')
-
-		# preenche entre o percentil 75 e 95
-		axes[i].fill_between(subset.index, subset['P75'], subset['P95'], color = 'orange')
-
-		# FFORMATACAO DO EIXO X.
-		axes[i].set_xticks(subset.index)
-		axes[i].set_xticklabels(["t"] + [f"t + {passo * 6}h" for passo in subset.index[1:]], fontsize = 10)
-		axes[i].set_xlim(0, 14) # Primeiras 48 horas
-
-		# FORMATACOES DO EIXO Y
-		axes[i].set_ylim(-0.3, 0.5)
-		axes[i].set_yticks([-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5])
-
-		# Titulo
-		axes[i].set_title(f"CICLONES {data_legend[i]} (2021)", fontsize = 13)
-
-		# Demais configuracoes
-		axes[i].grid(True, axis = 'y')
-
-
-	# Legenda do eixo x
-	fig.text(0.5, 0.07, "Passo de tempo", ha = 'center', fontsize = 18)
-
-	# Legenda do eixo y
-	fig.text(0.07, 0.5, "Tendencia da vorticidade relativa", va = 'center', rotation = 'vertical', fontsize = 18)
-
-	# Salva a figura e fecha
-	nome = os.path.join(save_folder, "Intervalos Interquartis Derivada.png")
-	fig.savefig(nome, bbox_inches = 'tight', dpi = 200)
-	plt.close()
-
 
 def interquartil_vorticidade(df : pd.DataFrame, save_folder):
+
+	df = df.copy()
+	df['rel_vort'] = -1 * df['rel_vort'] # convertendo pra vorticidade negativa
 
 	# Intervalos interquartis nas primeiras 48h
 	group = df.groupby(['legenda', 'step']) # agrupando por passo de tempo
@@ -127,7 +65,7 @@ def interquartil_vorticidade(df : pd.DataFrame, save_folder):
 		subset = results.loc[(data_legend[i],)]
 
 		# Mediana  e media
-		axes[i].plot(subset.index, subset['P50'], color = 'green', linewidth = 2)
+		axes[i].plot(subset.index, subset['P50'], color = 'royalblue', linewidth = 2)
 		# axes[i].plot(subset.index, subset['MEDIA'], color = 'royalblue', linewidth = 2)
 
 		# preenche entre o percentil 25 e 75
@@ -141,11 +79,11 @@ def interquartil_vorticidade(df : pd.DataFrame, save_folder):
 
 		# FFORMATACAO DO EIXO X.
 		axes[i].set_xticks(subset.index)
-		axes[i].set_xticklabels(["t"] + [f"t + {passo * 6}h" for passo in subset.index[1:]], fontsize = 10)
-		axes[i].set_xlim(0, 14) # Primeiras 48 horas
+		axes[i].set_xticklabels([f"t + {passo * 6}h" if passo > 0 else 't' for passo in subset.index], fontsize = 10)
+		axes[i].set_xlim(0, 16) # Primeiras 48 horas
 
 		# FORMATACOES DO EIXO Y
-		axes[i].set_ylim(0, 10)
+		axes[i].set_ylim(-10, 0)
 
 		# Titulo
 		axes[i].set_title(f"CICLONES {data_legend[i]} (2021)", fontsize = 13)
@@ -158,7 +96,11 @@ def interquartil_vorticidade(df : pd.DataFrame, save_folder):
 	fig.text(0.5, 0.07, "Passo de tempo", ha = 'center', fontsize = 18)
 
 	# Legenda do eixo y
-	fig.text(0.07, 0.5, "Vorticidade relativa negativa", va = 'center', rotation = 'vertical', fontsize = 18)
+	fig.text(0.07, 0.5, "Vorticidade relativa [1/s * 1e-5]", va = 'center', rotation = 'vertical', fontsize = 18)
+
+	# print(group.agg(
+	# 	qtd = ('rel_vort', lambda x: np.nansum(x > -4))
+	# ).reset_index().to_csv(os.path.join(save_folder, 'experimento 2.csv'), index = False))
 
 	# Salva a figura e fecha
 	nome = os.path.join(save_folder, "Intervalos Interquartis.png")
@@ -182,16 +124,11 @@ def sitemas_semiestacionarios(tracking : pd.DataFrame):
 		# ordena de acordo com o passo de tempo
 		cyclone = cyclone.sort_values(by = 'step', ascending=True)
 
-		distance = 0 # distancia total em graus
-		for row in cyclone.iterrows():
-			row = row[1]
-			if row['step'] == 0: # se for o primeiro passo de tempo, pula.
-				continue
-			
-			prev_row = cyclone.loc[cyclone['step'] == row['step'] - 1].iloc[0] # localiza o passo de tempo anterior
-
-			d = haversine_np(row['longitude'], row['latitude'], prev_row['longitude'], prev_row['latitude']) 
-			distance += d
+		# instantes de tempo
+		pos_ini = cyclone.iloc[0]
+		pos_fim = cyclone.iloc[-1]
+		
+		distance = haversine_np(pos_ini['longitude'], pos_ini['latitude'], pos_fim['longitude'], pos_fim['latitude']) 
 		
 		# atribuindo o resultado às linhas correspondentes
 		if distance < 10:
@@ -238,7 +175,7 @@ def grafico_interquartil(data_folder, save_folder):
 	print("Após o filtro de tempo restaram:", np.unique(df['id']).shape[0], "ciclones")
 
 	# filtrando de acordo com o criterio de sistemas semi estacionarios.
-	df = df.loc[~sitemas_semiestacionarios(df)].copy()
+	# df = df.loc[~sitemas_semiestacionarios(df)].copy()
 	
 	# Quantos ciclones sobraram depois desses filtros?
 	unicos = np.unique(df['id'])
@@ -247,6 +184,5 @@ def grafico_interquartil(data_folder, save_folder):
 
 	# gerando as figuras
 	interquartil_vorticidade(df, save_folder)
-	interquartil_vorticidade_derivada(df, save_folder)
 
  

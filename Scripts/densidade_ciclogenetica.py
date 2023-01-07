@@ -100,21 +100,34 @@ def gerar_netcdf(data_folder, years, resolucao : int = 5):
 		# convetendo objetos datetime
 		df['datetime'] = pd.to_datetime(df['datetime'])
 
+		#  indica a  data inicial do ciclone em cada passo de tempo
+		df['mes_inicio'] = pd.Series(0, df.index)
+		ids_unicos = np.unique(df['id'])
+		for id_ in ids_unicos:
+			condition = df['id'] == id_
+			cyclone = df.loc[condition]
+			mes = cyclone['datetime'].dt.month.iloc[0]
+			df.loc[condition, 'mes_inicio'] = mes
+
 		# loop para cada mes
 		for month in meses:
 			# slice para o mes e ano
-			subset = df.loc[df['datetime'].dt.month == month]
+			subset = df.loc[df['mes_inicio'] == month]
 
-			# resgatando o primeiro passo de tempo de cada ciclone
-			subset = subset.loc[subset['step'] == 0]
+			# resgatando a media dos primeiros passos de tempo
+			group = subset.loc[subset['step'] <= 4].groupby('id')
+			grouped = group.agg(
+				lon = ('longitude', 'mean'),
+			)
+			lat = subset.loc[subset['step'] == 0, ['latitude', 'id']]
 
 			# calculando a densidade
 			idx = (year - ano_inicio) * 12 + (month - 1)
 			results[:, :, idx] =  matriz_densidade(
 				binx,
 				biny,
-				subset['longitude'].to_numpy(),
-				subset['latitude'].to_numpy()
+				grouped['lon'].to_numpy(),
+				lat['latitude'].to_numpy()
 				) / dA # Dividindo pelos infinitesimos de area
 
 	# Gerando o arquivo netcdf
@@ -199,7 +212,6 @@ def regioes_ciclogeneticas(data_folder, years):
 			# posicao no array
 			idx = (year - ano_inicio) * 12 + (month - 1) 
 
-			print(qtd)
 			# atribuindo as quantidades
 			RG1_values[idx] = qtd['RG1']
 			RG2_values[idx] = qtd['RG2']

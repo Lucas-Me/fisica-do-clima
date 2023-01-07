@@ -79,7 +79,7 @@ def relative_vorticity(tracking: pd.DataFrame):
 
 	# passo de tempo
 	dt_h = 6 # resolucao temporal em horas
-	dt_criterio = 72
+	dt_criterio = 60
 	step = dt_criterio // dt_h
 
 	# loop para cada id / ciclone
@@ -88,7 +88,7 @@ def relative_vorticity(tracking: pd.DataFrame):
 		condition = tracking['id'] == n
 		cyclone = tracking.loc[condition]
 
-		if cyclone['duration'].iloc[0] < 72: # se a duracao do ciclone for inferior a 72h, pula.
+		if cyclone['duration'].iloc[0] < dt_criterio: # se a duracao do ciclone for inferior a 72h, pula.
 			continue
 
 		# organizando em ordem crescente de acordo com o tempo
@@ -148,7 +148,7 @@ def post_processing(folder : str, years : list[int]) -> None:
 
 		# estimando o criterio de vorticidade relativa
 		# ////////////////////////////////////////////////////////////////////
-		df = df.loc[~relative_vorticity(df)] # True se rel_vort for inferior a 4 em 72h
+		df = df.loc[~relative_vorticity(df)] # True se rel_vort for inferior a 4 em 60h
 
 
 		print(f"Após os filtros, restaram {np.unique(df['id']).shape[0]} / {N} ciclones em {year}")

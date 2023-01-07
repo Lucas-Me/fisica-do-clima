@@ -42,23 +42,24 @@ def visualizar_mapas(data_folder, save_folder):
 	# LEGENDA
 	# /////////////////////////////////////////////////////////////////////////
 	# define os intervalos da legenda
-	q_levs = np.array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25])
+	q_levs = np.array([1, 2, 3, 4, 5, 7, 10, 13, 17, 25])
 
 	# lista de cores, em ordem crescete. RGBA
 	cmap = mcm.get_cmap('Oranges')
 
-	colors = [cmap(i) for i in np.linspace(0, 0.9, q_levs.shape[0])]
+	colors = [cmap(i) for i in np.linspace(0, 0.8, q_levs.shape[0])]
 
-	# cria um novo cmap a partir do pre-existente
+	# cria um novo cmap
 	cmap = mcolors.LinearSegmentedColormap.from_list(
 	'Custom cmap', colors, q_levs.shape[0] - 1)
-	# cmap.set_over(np.array([0, 37, 89, 255])/255)
+	#
 	cmap.set_under('white')
-	cmap.set_over(cmap(0.95))
+	cmap.set_over('teal')
 	cmap.set_bad('white')
 
 	# nromaliza com base nos intervalos
 	norm = mcolors.BoundaryNorm(q_levs, cmap.N) # usa no PColormesh, nao no Contourf
+	# norm = mcolors.PowerNorm(1, total.max())
 
 	# configuracoes do plot
 	proj = ccrs.PlateCarree()
@@ -134,7 +135,6 @@ def sazonalidade_ciclogenese(data_folder, save_folder):
 	# calculando os totais sazonais
 	sazonal = da.groupby((da.time.dt.month // 3) % 4).sum()
 	sazonal = sazonal * 1e4 # compensacao
-	print(sazonal)
 
 	# coordenadas
 	x = sazonal.longitude.values

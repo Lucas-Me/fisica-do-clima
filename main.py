@@ -14,7 +14,8 @@ from Scripts.tracking_postprocessing import post_processing
 from Scripts.grafico_derivada import grafico_interquartil
 from Scripts import figura_tracking
 from Scripts import densidade_ciclogenetica
-from Scripts.graficos_espaciais import sazonalidade_ciclogenese
+from Scripts.graficos_espaciais import sazonalidade_ciclogenese, visualizar_mapas
+from Scripts.estatisticas import histograma_densidade
 
 if __name__ == "__main__":
 	# diretorios
@@ -50,16 +51,22 @@ if __name__ == "__main__":
 	densidade_ciclogenetica.gerar_netcdf(dados_filtrados_dir, anos, resolucao = 1)
 
 	# Visualizar plot basico do netcdf gerado
-	# densidade_ciclogenetica.visualizar_mapas(processados_dir, figuras_folder)
+	visualizar_mapas(processados_dir, figuras_folder)
 
-	# serie temporal da quantidade de ciclogenese por regiao ciclogenetica
-	# densidade_ciclogenetica.regioes_ciclogeneticas(dados_filtrados_dir, anos)
+	# # serie temporal da quantidade de ciclogenese por regiao ciclogenetica
+	densidade_ciclogenetica.regioes_ciclogeneticas(dados_filtrados_dir, anos)
+
+	# # Sazonalidade espacial ciclogenese
+	sazonalidade_ciclogenese(processados_dir, figuras_folder)
 
 	# SERIES TEMPORAIS
 	# ///////////////////////////////////////////////////////////////////////
 	
-	# Sazonalidade espacial ciclogenese
-	sazonalidade_ciclogenese(processados_dir, figuras_folder)
+
+	# ESTATISITCAS (APENAS PARA VISUALIZAR)
+	# ////////////////////////////////////////////////////////////////////////
+	# histograma_densidade(processados_dir)
+	
 
 	# Termina o timer
 	end = time.time()
