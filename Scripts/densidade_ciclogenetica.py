@@ -137,6 +137,111 @@ def gerar_netcdf(data_folder, years, resolucao : int = 5):
 	ds.to_netcdf(os.path.join(save_folder, filename))
 
 
+def areas_ciclogeneticas(data_folder, years, sazonal = False):
+	'''
+	Gera um arquivo csv com a série temporal da quantidade de ciclogeneses
+	por areas ciclogenetica, conforme defeinida através da analise da figura
+	de densidade de ciclogeneses.
+
+	Input são os ciclones identificdos pelo tracking após o pos-processamento 
+	(aplicacao do filtro)
+
+	Years deve ser uma lista em ordem crescente.
+	'''
+
+	# cria uma pasta "Processado" no diretorio pai, tudo bem se ja houver
+	par_dir = os.path.abspath(os.path.join(data_folder, os.pardir))
+	save_folder = os.path.join(par_dir, 'Processado')
+	os.makedirs(save_folder, exist_ok=True)
+
+	# array de datas
+	times = pd.date_range(start = f"{years[0]}-1-1", end = f"{years[-1]}-12-1", freq = 'MS') 
+
+	#A1 (Regiao Ciclogenetica no litoral do Urugai/ regiao sul)
+	A1_lon = slice(-60.0, -50.0)
+	A1_lat = slice(-27.5, -37.5)
+	A1_values = np.zeros(times.shape)
+
+	#A2 (Regiao ciclogenetica no litoral da Argentina)
+	A2_lon = slice(-62.5, -52.5)
+	A2_lat = slice(-40.0, -50.0)
+	A2_values = np.zeros(times.shape)
+
+	#A3 (Regiao ciclogenetica na patagonia)
+	A3_lon = slice(-72.5, -62.5)
+	A3_lat = slice(-45.0, -55.0)
+	A3_values = np.zeros(times.shape)
+
+	# config
+	meses = np.linspace(1, 12, 12).astype(int) # array de meses
+	ano_inicio = years[0] # menor ano
+
+	# Loop para cada ano (arquivos):
+	for year in years:
+		df = pd.read_csv(os.path.join(data_folder, f"{year}.csv"), header = 0)
+
+		# converte lon [0,360] para [-180, 180]
+		df['longitude'] = ((df['longitude'] + 180) % 360) - 180
+
+		# convetendo objetos datetime
+		df['datetime'] = pd.to_datetime(df['datetime'])
+
+		# estimando a qual regiao ciclogeneticapertence cada ponto
+		df['regiao'] = "Nenhuma"
+
+		df.loc[((df['longitude'] >= A1_lon.start) & (df['longitude'] <= A1_lon.stop))
+							& ((df['latitude'] >= A1_lat.stop) & (df['latitude'] <= A1_lat.start)), 'regiao'] = "A1"
+
+		df.loc[((df['longitude'] >= A2_lon.start) & (df['longitude'] <= A2_lon.stop))
+							& ((df['latitude'] >= A2_lat.stop) & (df['latitude'] <= A2_lat.start)), 'regiao'] = "A2"
+			
+		df.loc[((df['longitude'] >= A3_lon.start) & (df['longitude'] <= A3_lon.stop))
+							& ((df['latitude'] >= A3_lat.stop) & (df['latitude'] <= A3_lat.start)), 'regiao'] = "A3"
+
+		# loop para cada mes
+		for month in meses:
+			# slice para o mes e ano
+			subset = df.loc[df['datetime'].dt.month == month]
+
+			# resgatando o primeiro passo de tempo de cada ciclone
+			subset = subset.loc[subset['step'] == 0]
+
+			# estimando a quantidade de pontos (ciclogeneses) por regiao
+			qtd = subset['regiao'].groupby(subset['regiao']).size()
+			qtd = qtd.reindex(['Nenhuma', 'A1', 'A2', 'A3'], fill_value= 0)
+
+			# posicao no array
+			idx = (year - ano_inicio) * 12 + (month - 1) 
+
+			# atribuindo as quantidades
+			A1_values[idx] = qtd['A1']
+			A2_values[idx] = qtd['A2']
+			A3_values[idx] = qtd['A3']
+
+	# Criando um novo DataFrame para armazenar os resultados
+	content = {'time' : times, 'A1' : A1_values, 'A2' : A2_values, 'A3' : A3_values}
+	new_df = pd.DataFrame.from_dict(content)
+	new_df['ano'] = new_df.time.dt.year
+	new_df['month'] = new_df.time.dt.month
+
+	# salvando
+	filename = 'frequencia_ciclogenese_mensal_AREAS.csv'
+	if sazonal:
+		new_df['trimestre'] = (new_df['month'] // 3) % 4
+		new_df['estacao'] = new_df['trimestre'].apply(lambda x: ['VERAO', 'OUTONO', 'INVERNO', 'PRIMAVERA'][x])
+		new_df['trimestre'] = new_df['trimestre'].apply(lambda x: ['DJF', 'MAM', 'JJA', 'SON'][x])
+		new_df = new_df.drop(['month', 'time'], axis = 1).groupby(['trimestre', 'ano']).agg(
+			A1 = ('A1', 'sum'),
+			A2 = ('A2', 'sum'),
+			A3 = ('A3', 'sum'),
+		)
+
+		new_df = new_df.reset_index()
+		filename = 'frequencia_cilcogenese_sazonal_AREAS.csv'
+
+	new_df.to_csv(os.path.join(save_folder, filename), index = False)
+	
+
 def regioes_ciclogeneticas(data_folder, years):
 	'''
 	Gera um arquivo csv com a série temporal da quantidade de ciclogeneses

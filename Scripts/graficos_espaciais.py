@@ -144,7 +144,7 @@ def sazonalidade_ciclogenese(data_folder, save_folder):
 	# LEGENDA
 	# /////////////////////////////////////////////////////////////////////////
 	# define os intervalos da legenda
-	q_levs = np.array([1, 3, 5, 7, 9, 11, 13, 15])
+	q_levs = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
 
 	# lista de cores, em ordem crescete. RGBA
 	cmap = mcm.get_cmap('Oranges')

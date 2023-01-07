@@ -48,16 +48,18 @@ if __name__ == "__main__":
 	# /////////////////////////////////////////////////////////////////////
 
 	# Confecção do NetCDF com a densidade ciclogenética
-	densidade_ciclogenetica.gerar_netcdf(dados_filtrados_dir, anos, resolucao = 1)
+	# densidade_ciclogenetica.gerar_netcdf(dados_filtrados_dir, anos, resolucao = 1)
 
 	# Visualizar plot basico do netcdf gerado
-	visualizar_mapas(processados_dir, figuras_folder)
+	# visualizar_mapas(processados_dir, figuras_folder)
 
 	# # serie temporal da quantidade de ciclogenese por regiao ciclogenetica
-	densidade_ciclogenetica.regioes_ciclogeneticas(dados_filtrados_dir, anos)
+	# densidade_ciclogenetica.regioes_ciclogeneticas(dados_filtrados_dir, anos)
+	# densidade_ciclogenetica.areas_ciclogeneticas(dados_filtrados_dir, anos, sazonal = True)
+	# densidade_ciclogenetica.areas_ciclogeneticas(dados_filtrados_dir, anos)
 
 	# # Sazonalidade espacial ciclogenese
-	sazonalidade_ciclogenese(processados_dir, figuras_folder)
+	# sazonalidade_ciclogenese(processados_dir, figuras_folder)
 
 	# SERIES TEMPORAIS
 	# ///////////////////////////////////////////////////////////////////////
