@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import matplotlib.colors as mcolors
 import matplotlib.cm as mcm
+import matplotlib.patches as patches
 
 # IMPORT MAP RELATED MODULES
 import cartopy.crs as ccrs
@@ -54,7 +55,7 @@ def visualizar_mapas(data_folder, save_folder):
 	'Custom cmap', colors, q_levs.shape[0] - 1)
 	#
 	cmap.set_under('white')
-	cmap.set_over('teal')
+	cmap.set_over('darkred')
 	cmap.set_bad('white')
 
 	# nromaliza com base nos intervalos
@@ -121,6 +122,19 @@ def visualizar_mapas(data_folder, save_folder):
 
 	ax.set_title("Densidade de ciclogênese [total / km² * 1e-4] (1991 - 2021) ", ha = 'center', fontsize = 15)
 
+	# adicionar areas ciclogenéticas
+	rects = [
+		patches.Rectangle((-60, -37.5), 10, 10, linewidth=3, edgecolor='k', facecolor='none', transform = proj), # A1
+		patches.Rectangle((-62.5, -50), 10, 10, linewidth=3, edgecolor='k', facecolor='none', transform = proj), # A2
+		patches.Rectangle((-72.5, -55), 10, 10, linewidth=3, edgecolor='k', facecolor='none', transform = proj) # A3
+	]
+	leg_rects = ['A1', 'A2', 'A3']
+	for i in range(len(rects)):
+		x0, y0 = rects[i].get_x(), rects[i].get_y()
+		dx, dy = rects[i].get_width(), rects[i].get_height()
+		ax.text(x0 + dx / 2, y0 + dy / 2, leg_rects[i], ha = 'center', va = 'center', fontsize = 17, fontweight = 'bold')
+		ax.add_patch(rects[i])
+
 	# mostra o plot
 	name = "Total Ciclogeneses por km2.png"
 	fig.savefig(os.path.join(save_folder, name), bbox_inches = 'tight', dpi = 200)
@@ -156,7 +170,7 @@ def sazonalidade_ciclogenese(data_folder, save_folder):
 	'Custom cmap', colors, q_levs.shape[0] - 1)
 	# cmap.set_over(np.array([0, 37, 89, 255])/255)
 	cmap.set_under('white')
-	cmap.set_over(cmap(0.95))
+	cmap.set_over('darkred')
 	cmap.set_bad('white')
 
 	# nromaliza com base nos intervalos
@@ -245,7 +259,7 @@ def sazonalidade_ciclogenese(data_folder, save_folder):
 	# adiciona legenda 
 	cax = fig.add_axes([.92, .1, .06, .8]) # criando eixo pra colorbar
 	cb = fig.colorbar(CS, orientation = 'vertical', pad=0.04, fraction=0.04, cax = cax)
-	font_size = 10 # Adjust as appropriate.
+	font_size = 15 # Adjust as appropriate.
 	cb.ax.tick_params(labelsize=font_size)
 
 	# salva a figura

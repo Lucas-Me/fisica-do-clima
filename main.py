@@ -15,7 +15,8 @@ from Scripts.grafico_derivada import grafico_interquartil
 from Scripts import figura_tracking
 from Scripts import densidade_ciclogenetica
 from Scripts.graficos_espaciais import sazonalidade_ciclogenese, visualizar_mapas
-from Scripts.estatisticas import histograma_densidade
+from Scripts.serie_temporal import ciclogenese_temporal
+from Scripts.mapas_era5 import tendencia_fluxos
 
 if __name__ == "__main__":
 	# diretorios
@@ -24,6 +25,8 @@ if __name__ == "__main__":
 	figuras_folder = os.path.join(folder, 'Figuras')
 	dados_filtrados_dir = os.path.join(data_folder, 'Tracking', 'Filtrado')
 	processados_dir = os.path.join(data_folder, 'Tracking', 'Processado')
+	#
+	era5_dir = os.path.join(data_folder, 'ERA5')
 	
 	# configuracoes
 	anos = np.linspace(1991, 2021, 31).astype(int)
@@ -63,13 +66,12 @@ if __name__ == "__main__":
 
 	# SERIES TEMPORAIS
 	# ///////////////////////////////////////////////////////////////////////
-	
+	# ciclogenese_temporal(processados_dir, figuras_folder)
 
-	# ESTATISITCAS (APENAS PARA VISUALIZAR)
-	# ////////////////////////////////////////////////////////////////////////
-	# histograma_densidade(processados_dir)
+	# FLUXOS
+	# //////////////////////////////////////////////////////////////////////
+	tendencia_fluxos(era5_dir)
 	
-
 	# Termina o timer
 	end = time.time()
 
