@@ -237,7 +237,7 @@ def areas_ciclogeneticas(data_folder, years, sazonal = False):
 		)
 
 		new_df = new_df.reset_index()
-		filename = 'frequencia_cilcogenese_sazonal_AREAS.csv'
+		filename = 'frequencia_ciclogenese_sazonal_AREAS.csv'
 
 	new_df.to_csv(os.path.join(save_folder, filename), index = False)
 	

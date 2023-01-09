@@ -13,6 +13,7 @@ import os
 import pandas as pd
 import numpy as np
 import xarray as xr
+import pymannkendall as mk
 
 # MODULES PARA PLOT
 import matplotlib.pyplot as plt
@@ -36,6 +37,9 @@ def ciclogenese_temporal(data_dir, save_folder):
 		A2 = ('A2', 'sum'),
 		A3 = ('A3', 'sum')
 	)
+
+	anom_padronizada = (total_anual - total_anual.mean()) / total_anual.std()
+	print(anom_padronizada)
 
 	# figuras
 	fig, axes = plt.subplots(nrows = 2, figsize = (15, 10)) # 1 plot mensal e outro anual

@@ -58,49 +58,45 @@ def interquartil_vorticidade(df : pd.DataFrame, save_folder):
 	)
 
 	# Configuracoes do grafico
-	fig, axes = plt.subplots(figsize = (12, 12), nrows = data_legend.shape[0], sharex = True)
+	fig, axes = plt.subplots(figsize = (14, 12), nrows = data_legend.shape[0], sharex = True)
 
 	# Plotando os resultados
 	for i in range(data_legend.shape[0]):
 		subset = results.loc[(data_legend[i],)]
 
-		# Mediana  e media
-		axes[i].plot(subset.index, subset['P50'], color = 'royalblue', linewidth = 2)
-		# axes[i].plot(subset.index, subset['MEDIA'], color = 'royalblue', linewidth = 2)
-
-		# preenche entre o percentil 25 e 75
-		axes[i].fill_between(subset.index, subset['P25'], subset['P75'], color = 'orangered')
-
 		# preenche entre o percentil 5 e 25
-		axes[i].fill_between(subset.index, subset['P5'], subset['P25'], color = 'orange')
+		axes[i].fill_between(subset.index, subset['P5'], subset['P95'], color = 'gold', label = '[P5, P25] e [P75, P95]')
 
 		# preenche entre o percentil 75 e 95
-		axes[i].fill_between(subset.index, subset['P75'], subset['P95'], color = 'orange')
+		axes[i].fill_between(subset.index, subset['P75'], subset['P25'], color = 'darkorange', label = '[P25, P75]')
+
+		# Mediana  e media
+		axes[i].plot(subset.index, subset['P50'], color = 'royalblue', linewidth = 2, label = 'Mediana')
 
 		# FFORMATACAO DO EIXO X.
 		axes[i].set_xticks(subset.index)
-		axes[i].set_xticklabels([f"t + {passo * 6}h" if passo > 0 else 't' for passo in subset.index], fontsize = 10)
+		axes[i].set_xticklabels([f"t + {passo * 6}h" if passo > 0 else 't' for passo in subset.index], fontsize = 12)
 		axes[i].set_xlim(0, 16) # Primeiras 48 horas
 
 		# FORMATACOES DO EIXO Y
 		axes[i].set_ylim(-10, 0)
 
 		# Titulo
-		axes[i].set_title(f"CICLONES {data_legend[i]} (2021)", fontsize = 13)
+		axes[i].set_title(f"CICLONES {data_legend[i]} (2021)", fontsize = 14)
 
 		# Demais configuracoes
 		axes[i].grid(True, axis = 'y')
 
 
 	# Legenda do eixo x
-	fig.text(0.5, 0.07, "Passo de tempo", ha = 'center', fontsize = 18)
+	fig.text(0.5, 0.06, "Ciclo de vida", ha = 'center', fontsize = 18)
 
 	# Legenda do eixo y
-	fig.text(0.07, 0.5, "Vorticidade relativa [1/s * 1e-5]", va = 'center', rotation = 'vertical', fontsize = 18)
+	fig.text(0.05, 0.5, "Vorticidade relativa [1/s * 1e-5]", va = 'center', rotation = 'vertical', fontsize = 20)
 
-	# print(group.agg(
-	# 	qtd = ('rel_vort', lambda x: np.nansum(x > -4))
-	# ).reset_index().to_csv(os.path.join(save_folder, 'experimento 2.csv'), index = False))
+	fig.subplots_adjust(0.1, 0.1, .9, .9, .1, .15)
+	lg = axes[-1].legend(bbox_to_anchor = (0.5, -.25), loc = 'center', ncols = 3, fontsize = 15)
+	lg.set_frame_on(False)
 
 	# Salva a figura e fecha
 	nome = os.path.join(save_folder, "Intervalos Interquartis.png")

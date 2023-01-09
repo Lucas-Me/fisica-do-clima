@@ -14,9 +14,9 @@ from Scripts.tracking_postprocessing import post_processing
 from Scripts.grafico_derivada import grafico_interquartil
 from Scripts import figura_tracking
 from Scripts import densidade_ciclogenetica
-from Scripts.graficos_espaciais import sazonalidade_ciclogenese, visualizar_mapas
+from Scripts.graficos_espaciais import sazonalidade_ciclogenese, visualizar_mapas, mapas_tendencia_fluxos, mapa_correlacao, mapa_correlacao_sazonal
 from Scripts.serie_temporal import ciclogenese_temporal
-from Scripts.mapas_era5 import tendencia_fluxos
+from Scripts.estatisticas import tendencia_fluxos, correlacao_fluxos_ciclogenese, correlacao_fluxos_ciclogenese_sazonal, transformada_fourier
 
 if __name__ == "__main__":
 	# diretorios
@@ -25,6 +25,7 @@ if __name__ == "__main__":
 	figuras_folder = os.path.join(folder, 'Figuras')
 	dados_filtrados_dir = os.path.join(data_folder, 'Tracking', 'Filtrado')
 	processados_dir = os.path.join(data_folder, 'Tracking', 'Processado')
+	xls_folder = os.path.join(data_folder, "Tracking", "Validacao")
 	#
 	era5_dir = os.path.join(data_folder, 'ERA5')
 	
@@ -41,7 +42,6 @@ if __name__ == "__main__":
 	# post_processing(data_folder, anos)
 
 	# Grafico de intervalos interquartis da vorticidade relativa em cada passo de tempo
-	# xls_folder = os.path.join(data_folder, "Tracking", "Validacao")
 	# grafico_interquartil(xls_folder, figuras_folder)
 
 	# figura das trajetorias de cada ciclone no ano (MT FIGURA, ESTEJA AVISADO)
@@ -67,10 +67,16 @@ if __name__ == "__main__":
 	# SERIES TEMPORAIS
 	# ///////////////////////////////////////////////////////////////////////
 	# ciclogenese_temporal(processados_dir, figuras_folder)
+	# transformada_fourier(processados_dir, figuras_folder)
 
 	# FLUXOS
 	# //////////////////////////////////////////////////////////////////////
-	tendencia_fluxos(era5_dir)
+	# tendencia_fluxos(era5_dir)
+	# mapas_tendencia_fluxos(era5_dir, figuras_folder)
+	# correlacao_fluxos_ciclogenese(era5_dir, processados_dir)
+	# correlacao_fluxos_ciclogenese_sazonal(era5_dir, processados_dir)
+	mapa_correlacao(era5_dir, figuras_folder)
+	# mapa_correlacao_sazonal(era5_dir, figuras_folder)
 	
 	# Termina o timer
 	end = time.time()
